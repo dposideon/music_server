@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Music</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <style>
+        body { font-family: sans-serif; background: #222; color: #fff; text-align: center; }
+        input, button { font-size: 1.2em; margin: 0.5em; }
+        #queue, #downloadedQueue { margin-top: 2em; }
+        .controls { margin-top: 2em; }
+        .controls button { min-width: 100px; }
+        #nowPlaying { margin-top: 2em; font-size: 1.3em; }
+        #qrCodeContainer { margin-top: 3em; }
+        #qrCodeImage { background: #fff; padding: 1em; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>🔊🔊🔊🔊🔊</h1>
+    <form id="linkForm">
+        <input type="url" id="ytLink" placeholder="Paste YouTube link here" required>
+        <button type="submit">Queue Song</button>
+    </form>
+    <div class="controls">
+        <button id="pauseBtn">Pause</button>
+        <button id="playBtn">Play</button>
+        <button id="skipBtn">Skip</button>
+    </div>
+    <div id="nowPlaying">
+        <strong>Now Playing:</strong> <span id="nowPlayingText">Nothing</span>
+    </div>
+    <!-- Downloaded Queue Section (moved above Current Queue) -->
+    <div id="downloadedQueue">
+        <h2>Downloaded Queue</h2>
+        <ul id="downloadedQueueList"></ul>
+    </div>
+    <div id="queue">
+        <h2>Current Queue</h2>
+        <ul id="queueList"></ul>
+    </div>
+    <!-- QR Code at the bottom -->
+    <div id="qrCodeContainer">
+        <h2>Scan to Join</h2>
+        <img id="qrCodeImage" src="/static/qr.png" alt="QR Code to join the jukebox" width="200" height="200">
+        <div style="color: #aaa; font-size: 0.9em; margin-top: 0.5em;">Scan this QR code to access the jukebox from your device.</div>
+    </div>
+    <script>
+        const form = document.getElementById('linkForm');
+        const ytLink = document.getElementById('ytLink');
+        const queueList = document.getElementById('queueList');
+        const downloadedQueueList = document.getElementById('downloadedQueueList');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const playBtn = document.getElementById('playBtn');
+        const skipBtn = document.getElementById('skipBtn');
+        const nowPlayingText = document.getElementById('nowPlayingText');
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const link = ytLink.value;
+            await fetch('/api/queue', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ link })
+            });
+            ytLink.value = '';
+            loadQueue();
+        };
+
+        pauseBtn.onclick = async () => {
+            await fetch('/api/pause', { method: 'POST' });
+        };
+
+        playBtn.onclick = async () => {
+            await fetch('/api/play', { method: 'POST' });
+        };
+
+        skipBtn.onclick = async () => {
+            await fetch('/api/skip', { method: 'POST' });
+        };
+
+        async function loadQueue() {
+            const res = await fetch('/api/queue');
+            const queue = await res.json();
+            queueList.innerHTML = '';
+            queue.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item.title || item.link;
+                queueList.appendChild(li);
+            });
+        }
+
+        async function loadDownloadedQueue() {
+            const res = await fetch('/api/downloaded_queue');
+            if (!res.ok) {
+                downloadedQueueList.innerHTML = '<li>Could not load downloaded queue.</li>';
+                return;
+            }
+            const downloadedQueue = await res.json();
+            downloadedQueueList.innerHTML = '';
+            downloadedQueue.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item.title || item.link;
+                downloadedQueueList.appendChild(li);
+            });
+        }
+
+        async function loadNowPlaying() {
+            const res = await fetch('/api/now_playing');
+            if (res.ok) {
+                const nowPlaying = await res.json();
+                nowPlayingText.textContent = nowPlaying.title || nowPlaying.link || "Nothing";
+            } else {
+                nowPlayingText.textContent = "Nothing";
+            }
+        }
+
+        // Initial load
+        loadQueue();
+        loadDownloadedQueue();
+        loadNowPlaying();
+        setInterval(loadQueue, 5000);
+        setInterval(loadDownloadedQueue, 5000);
+        setInterval(loadNowPlaying, 2000);
+    </script>
+</body>
+</html>
