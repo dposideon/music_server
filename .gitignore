@@ -5,3 +5,4 @@
 /static/index2.html
 /static/qr.png
 .DS_Store
+.gitignore
