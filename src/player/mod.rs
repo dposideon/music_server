@@ -59,6 +59,18 @@ pub enum QueueCommand {
     Add,
 }
 
+pub fn new_download_queue() -> DownloadQueue {
+    Arc::new(Mutex::new(VecDeque::new())) 
+}
+
+pub fn new_queue() -> Queue {
+    Arc::new(Mutex::new(VecDeque::new()))
+}
+
+pub fn new_now_playing() -> NowPlaying {
+    Arc::new(Mutex::new(None))
+}
+
 async fn create_youtube_from_existing(executables_dir: PathBuf, output_dir: PathBuf, update: bool) -> Youtube {
     let dlp = executables_dir.join(format!("yt-dlp{}", EXE_SUFFIX));
     let ffmpeg = executables_dir.join(format!("ffmpeg{}",EXE_SUFFIX));
